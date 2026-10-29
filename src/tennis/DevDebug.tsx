@@ -16,15 +16,18 @@
 //   swings()      every swing read: time, hand, speed, stroke, timing
 //   log           the last game events
 //   meter(), peak(), resetPeak()  the sound level
+//   detail(0 | 1 | 2 | null)  force the device detail level
+//   speed(k), camera(pos, target, fov), pose(who, stroke, t), renderer()
 // Scene.tsx lazy-imports this behind an inline NODE_ENV check, so it never
 // reaches production.
 import { useEffect, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 
 import { Vector3 } from "three";
 
 import { sound } from "./audio";
 import { cameraOverride } from "./CameraRig";
+import { detail } from "./quality";
 import { devHands, swingLog } from "./HandInput";
 import type { GameEvent } from "./sim/game";
 import type { Stroke } from "./sim/shots";
@@ -42,6 +45,7 @@ const OFFSET: Record<Exclude<Auto, null>, number> = {
 };
 
 const DevDebug = () => {
+  const gl = useThree((st) => st.gl);
   const auto = useRef<Auto>(null);
   const force = useRef<Force>(null);
   const strokeOnly = useRef<Stroke | null>(null);
@@ -115,6 +119,19 @@ const DevDebug = () => {
         sound.peak = 0;
       },
       soundOn: () => sound.running,
+      /** Renderer facts: tone mapping, colour space, pixel ratio, draw calls. */
+      renderer: () => ({
+        toneMapping: gl.toneMapping,
+        outputColorSpace: gl.outputColorSpace,
+        pixelRatio: gl.getPixelRatio(),
+        calls: gl.info.render.calls,
+        triangles: gl.info.render.triangles,
+        shadows: gl.shadowMap.enabled,
+      }),
+      /** Detail level 0 low, 1 medium, 2 high (null = follow the device). */
+      detail: (n: number | null) => {
+        detail.forced = n;
+      },
       /** Game speed: 1 normal, 0 frozen, 0.25 slow motion. */
       speed: (k: number) => {
         tennis.timeScale = k;
@@ -158,7 +175,7 @@ const DevDebug = () => {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [gl]);
 
   useFrame(() => {
     // Keep the loudest output level seen (window.__tennis.peak()).
@@ -166,6 +183,10 @@ const DevDebug = () => {
     const { game } = tennis;
     const inc = game.incoming;
     const nowS = performance.now() / 1000;
+
+    // A fixed stroke also sets your player up on that side early.
+    if (strokeOnly.current && game.phase === "rally")
+      game.aimSide(strokeOnly.current);
 
     // Autoplay: swing at the planned moment of each ball coming to you.
     if (

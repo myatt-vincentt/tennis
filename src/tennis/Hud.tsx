@@ -1,8 +1,7 @@
 // The page UI, minimal, on Night glass:
 //   - the rally count, big in Arles, top centre, with your best under it
-//   - top right: the view chip (a camera; each tap goes to the next view:
+//   - top right, under your camera: the view chip (a camera; each tap goes to the next view:
 //     behind, first person, side) and the day / night chip (sun / moon)
-//   - the glass edge around the corner camera (top left)
 //   - after a hit, a small timing word pops up: Perfect, Good, Early, Late
 //   - after a rally, a short card: "Rally 7" and why it ended (Out, Net,
 //     Missed), or "New best"
@@ -38,9 +37,6 @@ const CSS = `
   .tn-glass { background: rgb(35 37 40 / .82); } }
 .tn-scrim { position: absolute; left: 0; right: 0; top: 0; height: 120px;
   background: linear-gradient(rgb(35 37 40 / .4), rgb(35 37 40 / 0)); }
-.tn-edge { position: absolute; border-radius: 15px;
-  border: 1px solid rgb(235 246 253 / .18);
-  box-shadow: inset 0 1px 1px rgb(255 255 255 / .22), 0 8px 24px rgb(0 0 0 / .22); }
 .tn-rally { position: absolute; left: 50%; top: 16px; transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center; gap: 0;
   padding: 6px 18px 7px; border-radius: 18px; min-width: 76px; }
@@ -52,7 +48,7 @@ const CSS = `
 @keyframes tn-bump { from { transform: scale(1.18); } to { transform: scale(1); } }
 .tn-best { font: 600 13px/1 system-ui, -apple-system, sans-serif; opacity: .85;
   font-variant-numeric: tabular-nums; margin-top: 2px; }
-.tn-chips { position: absolute; right: 16px; top: 16px; display: flex; gap: 8px; }
+.tn-chips { position: absolute; right: 16px; display: flex; gap: 8px; }
 .tn-btn { pointer-events: auto; border: 0; padding: 0; margin: 0; color: inherit;
   display: grid; place-items: center; cursor: pointer; outline: none; touch-action: manipulation;
   width: 44px; height: 44px; border-radius: 50%; transition: transform 160ms ease-out; }
@@ -162,16 +158,6 @@ export const Hud = () => {
       <style>{CSS}</style>
       <div className="tn-root">
         <div className="tn-scrim" />
-        <div
-          className="tn-edge"
-          style={{
-            left: frame.left - 1,
-            top: frame.top - 1,
-            width: frame.width + 2,
-            height: frame.height + 2,
-          }}
-          aria-hidden="true"
-        />
         <div className="tn-rally tn-glass" aria-live="polite">
           <div className="tn-label">Rally</div>
           <div
@@ -182,7 +168,10 @@ export const Hud = () => {
           </div>
           <div className="tn-best">Best {game.best}</div>
         </div>
-        <div className="tn-chips">
+        <div
+          className="tn-chips"
+          style={{ top: frame.top + frame.height + 10 }}
+        >
           <button
             type="button"
             data-hud="view"

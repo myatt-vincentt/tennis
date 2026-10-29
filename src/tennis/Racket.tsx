@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { DoubleSide, MeshStandardMaterial, Vector3, type Group } from "three";
 
+import { racketGeometry, stringsMap } from "./character";
 import { hands } from "./HandInput";
 import { easeOut } from "./look";
 import type { Stroke } from "./sim/shots";
@@ -24,21 +25,24 @@ export const Racket = () => {
   const mats = useMemo(
     () => ({
       frame: new MeshStandardMaterial({
-        color: "#2a2d33",
-        roughness: 0.35,
-        metalness: 0.4,
+        color: "#262a31",
+        roughness: 0.3,
+        metalness: 0.5,
       }),
-      grip: new MeshStandardMaterial({ color: "#f4d968", roughness: 0.7 }),
+      grip: new MeshStandardMaterial({ color: "#2a2d33", roughness: 0.8 }),
       strings: new MeshStandardMaterial({
-        color: "#f4f4f0",
+        color: "#f4f4ec",
+        roughness: 0.6,
+        alphaMap: stringsMap(),
         transparent: true,
-        opacity: 0.35,
         side: DoubleSide,
         depthWrite: false,
       }),
     }),
     [],
   );
+  const geo = useMemo(racketGeometry, []);
+  useEffect(() => () => Object.values(geo).forEach((g) => g.dispose()), [geo]);
   useEffect(
     () => () => Object.values(mats).forEach((m) => m.dispose()),
     [mats],
@@ -97,19 +101,10 @@ export const Racket = () => {
 
   return (
     <group ref={root} visible={false} scale={0.75}>
-      <mesh material={mats.grip} position={[0, -0.24, 0]}>
-        <cylinderGeometry args={[0.018, 0.02, 0.2, 8]} />
-      </mesh>
-      <mesh material={mats.frame} position={[0, -0.08, 0]}>
-        <cylinderGeometry args={[0.012, 0.016, 0.14, 8]} />
-      </mesh>
-      <group position={[0, 0.12, 0]} scale={[1, 1.25, 1]}>
-        <mesh material={mats.frame}>
-          <torusGeometry args={[0.12, 0.011, 6, 28]} />
-        </mesh>
-        <mesh material={mats.strings}>
-          <circleGeometry args={[0.12, 24]} />
-        </mesh>
+      <group position={[0, -0.12, 0]}>
+        <mesh geometry={geo.grip} material={mats.grip} />
+        <mesh geometry={geo.frame} material={mats.frame} />
+        <mesh geometry={geo.strings} material={mats.strings} />
       </group>
     </group>
   );

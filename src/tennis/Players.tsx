@@ -1,6 +1,7 @@
-// The two players, built from simple rounded shapes: you at the near end
-// (yellow shirt), the computer at the far end (coral shirt). Both are
-// right-handed.
+// The two players, built in code from smooth shapes (character.ts): you at
+// the near end (yellow shirt, short hair, headband), the computer at the far
+// end (coral shirt, ponytail). Both are right-handed, with a strung racket.
+// A soft contact shadow sits under each player's feet.
 //
 // They run with swinging arms and legs at the speed they move, stand in a
 // light ready crouch, and swing to match the hit: a forehand from the right
@@ -13,17 +14,25 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
-  CapsuleGeometry,
-  CircleGeometry,
   DoubleSide,
   MeshStandardMaterial,
   Quaternion,
-  SphereGeometry,
+  ShaderMaterial,
   TorusGeometry,
   Vector3,
   type Group,
+  type Mesh,
 } from "three";
 
+import {
+  bodyGeometry,
+  fabric,
+  hairGeometry,
+  headGeometry,
+  racketGeometry,
+  skin as skinMaterial,
+  stringsMap,
+} from "./character";
 import { PALETTE } from "./look";
 import {
   copyPose,
@@ -39,7 +48,31 @@ const DOWN = new Vector3(0, -1, 0);
 const armQuat = (p: ArmPose, out: Quaternion) =>
   out.setFromUnitVectors(DOWN, new Vector3(...p.dir).normalize());
 
-type Look = { shirt: string; shorts: string; band: string };
+type Look = {
+  shirt: string;
+  shorts: string;
+  band: string;
+  hair: string;
+  long: boolean;
+  shoe: string;
+  grip: string;
+};
+
+const contactVert = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+const contactFrag = /* glsl */ `
+  varying vec2 vUv;
+  uniform float opacity;
+  void main() {
+    float d = length(vUv - 0.5) * 2.0;
+    gl_FragColor = vec4(0.0, 0.02, 0.05, (1.0 - smoothstep(0.1, 1.0, d)) * opacity);
+  }
+`;
 
 const Player = ({
   who,
@@ -62,48 +95,62 @@ const Player = ({
   const pose = useMemo(() => copyPose(POSES.ready), []);
   const q = useMemo(() => new Quaternion(), []);
 
+  const contact = useRef<Mesh>(null);
+
   const mats = useMemo(
     () => ({
-      shirt: new MeshStandardMaterial({ color: colours.shirt, roughness: 0.7 }),
-      shorts: new MeshStandardMaterial({
-        color: colours.shorts,
-        roughness: 0.75,
-      }),
-      skin: new MeshStandardMaterial({ color: skin, roughness: 0.65 }),
-      band: new MeshStandardMaterial({ color: colours.band, roughness: 0.6 }),
-      shoe: new MeshStandardMaterial({ color: "#f2f3f5", roughness: 0.6 }),
+      shirt: fabric(colours.shirt, 1),
+      collar: fabric(colours.band, 0.3),
+      shorts: fabric(colours.shorts, 0.6),
+      sock: fabric("#f4f5f7", 0.2),
+      skin: skinMaterial(skin),
+      hair: new MeshStandardMaterial({ color: colours.hair, roughness: 0.62 }),
+      eyes: new MeshStandardMaterial({ color: "#1c1a1a", roughness: 0.25 }),
+      band: fabric(colours.band, 0.2),
+      shoe: new MeshStandardMaterial({ color: colours.shoe, roughness: 0.5 }),
+      sole: new MeshStandardMaterial({ color: "#e9eaec", roughness: 0.75 }),
       frame: new MeshStandardMaterial({
-        color: "#2a2d33",
-        roughness: 0.35,
-        metalness: 0.4,
+        color: "#262a31",
+        roughness: 0.3,
+        metalness: 0.5,
       }),
+      grip: new MeshStandardMaterial({ color: colours.grip, roughness: 0.8 }),
       strings: new MeshStandardMaterial({
-        color: "#f4f4f0",
+        color: "#f4f4ec",
+        roughness: 0.6,
+        alphaMap: stringsMap(),
         transparent: true,
-        opacity: 0.45,
         side: DoubleSide,
         depthWrite: false,
+      }),
+      contact: new ShaderMaterial({
+        uniforms: { opacity: { value: 0.42 } },
+        vertexShader: contactVert,
+        fragmentShader: contactFrag,
+        transparent: true,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
       }),
     }),
     [colours, skin],
   );
-  const geo = useMemo(
-    () => ({
-      chest: new CapsuleGeometry(0.17, 0.3, 4, 10),
-      shorts: new CapsuleGeometry(0.16, 0.12, 4, 10),
-      head: new SphereGeometry(0.115, 14, 10),
-      band: new TorusGeometry(0.112, 0.022, 6, 16),
-      upper: new CapsuleGeometry(0.052, 0.22, 3, 8),
-      fore: new CapsuleGeometry(0.046, 0.2, 3, 8),
-      hand: new SphereGeometry(0.05, 8, 6),
-      thigh: new CapsuleGeometry(0.075, 0.3, 3, 8),
-      shin: new CapsuleGeometry(0.062, 0.3, 3, 8),
-      handle: new CapsuleGeometry(0.016, 0.22, 2, 6),
-      rim: new TorusGeometry(0.13, 0.012, 6, 24),
-      strings: new CircleGeometry(0.13, 20),
-    }),
-    [],
-  );
+  const geo = useMemo(() => {
+    const body = bodyGeometry();
+    const head = headGeometry();
+    const racket = racketGeometry();
+    return {
+      ...body,
+      head: head.skin,
+      eyes: head.eyes,
+      brows: head.brows,
+      hair: hairGeometry(colours.long),
+      headband: new TorusGeometry(0.106, 0.014, 8, 28),
+      grip: racket.grip,
+      frame: racket.frame,
+      strings: racket.strings,
+    };
+  }, [colours.long]);
   useEffect(
     () => () => {
       Object.values(mats).forEach((m) => m.dispose());
@@ -128,6 +175,11 @@ const Player = ({
     if (!g) return;
     g.visible = !(who === "you" && tennis.view === "first");
     g.position.set(p.x, 0, p.z);
+    const c = contact.current;
+    if (c) {
+      c.position.set(p.x, 0.004, p.z);
+      c.visible = g.visible;
+    }
     // Face the net, turned a little towards the ball.
     const facing = who === "you" ? Math.PI : 0;
     const toBall = Math.atan2(
@@ -185,103 +237,85 @@ const Player = ({
     });
   });
 
+  const sh = (
+    m: keyof typeof mats,
+    g: keyof typeof geo,
+    pos?: [number, number, number],
+  ) => <mesh geometry={geo[g]} material={mats[m]} position={pos} castShadow />;
+
   return (
-    <group ref={root}>
-      <group ref={hips}>
-        {[-0.1, 0.1].map((x, i) => (
-          <group key={x} ref={legs[i]} position={[x, -0.02, 0]}>
-            <mesh
-              geometry={geo.thigh}
-              material={mats.skin}
-              position={[0, -0.22, 0]}
-              castShadow
-            />
-            <group ref={knees[i]} position={[0, -0.44, 0]}>
-              <mesh
-                geometry={geo.shin}
-                material={mats.skin}
-                position={[0, -0.2, 0]}
-                castShadow
-              />
-              <mesh material={mats.shoe} position={[0, -0.42, 0.05]} castShadow>
-                <boxGeometry args={[0.11, 0.08, 0.26]} />
-              </mesh>
-            </group>
-          </group>
-        ))}
-        <mesh
-          geometry={geo.shorts}
-          material={mats.shorts}
-          position={[0, -0.02, 0]}
-          castShadow
-        />
-        <group ref={torso} position={[0, 0.05, 0]}>
-          <mesh
-            geometry={geo.chest}
-            material={mats.shirt}
-            position={[0, 0.3, 0]}
-            castShadow
-          />
-          <mesh
-            geometry={geo.head}
-            material={mats.skin}
-            position={[0, 0.72, 0]}
-            castShadow
-          />
-          <mesh
-            geometry={geo.band}
-            material={mats.band}
-            position={[0, 0.76, 0]}
-            rotation-x={Math.PI / 2}
-          />
-          {[-0.215, 0.215].map((x, i) => (
-            <group key={x} ref={shoulders[i]} position={[x, 0.5, 0]}>
-              <mesh
-                geometry={geo.upper}
-                material={mats.shirt}
-                position={[0, -0.14, 0]}
-                castShadow
-              />
-              <group ref={elbows[i]} position={[0, -0.29, 0]}>
-                <mesh
-                  geometry={geo.fore}
-                  material={mats.skin}
-                  position={[0, -0.13, 0]}
-                  castShadow
-                />
-                <mesh
-                  geometry={geo.hand}
-                  material={mats.skin}
-                  position={[0, -0.27, 0]}
-                />
-                {i === 0 ? (
-                  <group position={[0, -0.29, 0]}>
-                    <mesh
-                      geometry={geo.handle}
-                      material={mats.frame}
-                      position={[0, -0.08, 0]}
-                      castShadow
-                    />
-                    <group
-                      position={[0, -0.38, 0]}
-                      rotation-y={Math.PI / 2}
-                      scale={[1, 1.25, 1]}
-                    >
-                      <mesh
-                        geometry={geo.rim}
-                        material={mats.frame}
-                        castShadow
-                      />
-                      <mesh geometry={geo.strings} material={mats.strings} />
-                    </group>
-                  </group>
-                ) : null}
+    <>
+      <mesh
+        ref={contact}
+        rotation-x={-Math.PI / 2}
+        material={mats.contact}
+        renderOrder={2}
+      >
+        <planeGeometry args={[1.1, 1.1]} />
+      </mesh>
+      <group ref={root}>
+        <group ref={hips}>
+          {[-0.092, 0.092].map((x, i) => (
+            <group key={x} ref={legs[i]} position={[x, -0.06, 0]}>
+              {sh("shorts", "shortsLeg")}
+              {sh("skin", "thigh")}
+              <group ref={knees[i]} position={[0, -0.44, 0]}>
+                {sh("skin", "calf")}
+                {sh("sock", "sock")}
+                <group position={[0, -0.42, 0.03]}>
+                  {sh("shoe", "shoe")}
+                  {sh("sole", "sole", [0, -0.022, 0.035])}
+                </group>
               </group>
             </group>
           ))}
+          {sh("shorts", "shorts")}
+          <group ref={torso} position={[0, 0.05, 0]}>
+            {sh("shirt", "shirt")}
+            <mesh
+              geometry={geo.collar}
+              material={mats.collar}
+              position={[0, 0.565, 0.01]}
+              rotation-x={Math.PI / 2 - 0.2}
+              scale={[1, 0.8, 1]}
+            />
+            {sh("skin", "neck")}
+            <group position={[0, 0.755, 0.012]}>
+              {sh("skin", "head")}
+              {sh("hair", "hair")}
+              <mesh geometry={geo.eyes} material={mats.eyes} />
+              <mesh geometry={geo.brows} material={mats.hair} />
+              {who === "you" ? (
+                <mesh
+                  geometry={geo.headband}
+                  material={mats.band}
+                  position={[0, 0.03, 0]}
+                  rotation-x={Math.PI / 2 + 0.12}
+                />
+              ) : null}
+            </group>
+            {[-0.2, 0.2].map((x, i) => (
+              <group key={x} ref={shoulders[i]} position={[x, 0.47, 0]}>
+                {sh("shirt", "sleeve")}
+                {sh("skin", "upperArm")}
+                <group ref={elbows[i]} position={[0, -0.29, 0]}>
+                  {sh("skin", "forearm")}
+                  {who === "you" ? sh("band", "wristband") : null}
+                  {sh("skin", "hand", [0, -0.25, 0])}
+                  {i === 0 ? (
+                    <group position={[0, -0.42, 0]} rotation-x={Math.PI}>
+                      {sh("grip", "grip")}
+                      {sh("frame", "frame")}
+                      <mesh geometry={geo.strings} material={mats.strings} />
+                    </group>
+                  ) : null}
+                </group>
+              </group>
+            ))}
+          </group>
         </group>
       </group>
-    </group>
+    </>
   );
 };
 

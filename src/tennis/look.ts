@@ -24,8 +24,24 @@ export const PALETTE = {
   skyLow: new Color("#d8ecfb"),
   nightTop: new Color("#050a1c"),
   nightLow: new Color("#1d2a4d"),
-  you: { shirt: "#f4d968", shorts: "#2a2d33", band: "#ffffff" },
-  cpu: { shirt: "#e86f5a", shorts: "#f2f2f2", band: "#2a2d33" },
+  you: {
+    shirt: "#f4d968",
+    shorts: "#2a2d33",
+    band: "#ffffff",
+    hair: "#3b2a20",
+    long: false,
+    shoe: "#ffffff",
+    grip: "#2a2d33",
+  },
+  cpu: {
+    shirt: "#e86f5a",
+    shorts: "#f2f2f2",
+    band: "#2a2d33",
+    hair: "#17130f",
+    long: true,
+    shoe: "#2a2d33",
+    grip: "#f2f2f2",
+  },
   skin: ["#e9b892", "#a86f4c"],
   /** Crowd shirts. */
   crowd: [

@@ -6,8 +6,8 @@
 // works. In a browser without a camera (the built-in preview) it never shows,
 // so this fills exactly that gap: when the webcam fails it shows the SDK's
 // MediaSourceSwitcher with every SDK sample video and image and the webcam, and
-// starts on the SDK's "Palms Waving" video (quick hand moves, so the swing
-// reader has something to read). Nothing to download first.
+// starts on the SDK's "Thumb Up" video (a person with a hand up, so the
+// corner camera shows a tracked palm). Nothing to download first.
 //
 // Optional: drop a clip at dev-media/tennis.mp4 and it is listed first and
 // used as the start instead (git-ignored; see dev-media/README.md). It lives
@@ -72,8 +72,8 @@ const loadLocalClip = (): Promise<Preset | null> =>
     }))
     .catch(() => null);
 
-/** Without a local clip, start on this SDK sample: two hands waving. */
-const SDK_START = "hand_palms_waving.mp4";
+/** Without a local clip, start on this SDK sample: a hand in view. */
+const SDK_START = "person_thumbUp.mp4";
 
 type CaptureCanvas = HTMLCanvasElement & {
   captureStream: (fps?: number) => MediaStream;

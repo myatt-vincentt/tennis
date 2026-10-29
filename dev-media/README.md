@@ -5,7 +5,7 @@ Optional dev-only preview media. Nothing here ships: only
 production builds.
 
 You don't need anything here. Without a webcam, `pnpm dev` starts on the SDK's
-built-in "Palms Waving" video and lists every SDK sample video and image. Click,
+built-in "Thumb Up" video and lists every SDK sample video and image. Click,
 tap or press space to swing without a hand; the dev keys are listed in
 `src/tennis/DevDebug.tsx`.
 
