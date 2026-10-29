@@ -1,8 +1,9 @@
 {
-  "title": "XR App - Vincentt",
-  "description": "An AR experience built with Vincentt",
+  "title": "Tennis",
+  "description": "Your hand is the racket: an endless 3D tennis rally against the computer",
+  "url": "https://tennis.vincentt.app",
   "image": "/images/og-default.jpg",
-  "imageAlt": "Vincentt — Augmented Reality App builder",
+  "imageAlt": "A 3D tennis court in a stadium",
   "imageWidth": 1200,
   "imageHeight": 630,
   "imageType": "image/jpeg"
