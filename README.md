@@ -8,6 +8,7 @@ hits harder, and the swing's sideways angle aims left or right. Early and late s
 ball, and a wild one can go out or into the net. Every return that lands in adds one to the
 rally; the computer gets quicker and wider as it grows. Your best rally is kept on the device.
 
+- Thumbnail: `public/images/tennis-thumbnail.jpg` (the share image).
 - **Play by hand:** swing either hand in front of the camera. Your camera sits small in the top
   right corner with a ring on each tracked palm. A thin ring closes in on the ball as it comes to
   you; it lands on the ball (and turns yellow) at the perfect moment. Perfect, Good, Early or

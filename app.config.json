@@ -2,9 +2,9 @@
   "title": "Tennis",
   "description": "Your hand is the racket: an endless 3D tennis rally, by day or under floodlights",
   "url": "https://tennis.vincentt.app",
-  "image": "/images/og-default.jpg",
+  "image": "/images/tennis-thumbnail.jpg",
   "imageAlt": "Tennis — a camera experience built with Vincentt",
-  "imageWidth": 1200,
-  "imageHeight": 630,
+  "imageWidth": 1672,
+  "imageHeight": 941,
   "imageType": "image/jpeg"
 }
